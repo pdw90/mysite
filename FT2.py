@@ -3,13 +3,14 @@ from selenium import webdriver
 
 
 class NewVisitorTest(unittest.TestCase):  # (1)
-    def setUp(self):  # (3)
-        self.browser = webdriver.Firefox()  #(4)
+    def setUp(self):  # (2)
+        self.browser = webdriver.Firefox()  # (4)
+        self.browser.implicitly_wait(3)
 
     def tearDown(self):  # (3)
         self.browser.quit()
 
-    def test_can_start_a_todo_list(self):  # (2)
+    def test_can_start_a_todo_list(self):  # (4)
         # Edith has heard about a cool new online to-do app.
         # She goes to check out its homepage
         self.browser.get("http://localhost:8000")  # (4)
