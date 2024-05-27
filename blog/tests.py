@@ -282,3 +282,7 @@ class TestView(TestCase):
         self.assertIn("안녕 세계? 우리는 하나!", main_area.text)
         self.assertIn(self.category_music.name, main_area.text)
         self.assertIn('파이썬 공부', main_area.text)
+        self.assertIn('한글 태그', main_area.text)
+        self.assertIn('some tag', main_area.text)
+        self.assertNotIn('python', main_area.text)
+
