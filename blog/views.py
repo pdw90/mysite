@@ -1,9 +1,11 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.shortcuts import get_object_or_404
 from .models import Post, Category, Tag
 from django.core.exceptions import PermissionDenied
 from django.utils.text import slugify
+from .forms import CommentForm
 
 
 def tag_page(request, slug):
@@ -40,6 +42,7 @@ class PostDetail(DetailView):
         context = super(PostDetail, self).get_context_data()
         context["categories"] = Category.objects.all()
         context["no_category_post_count"] = Post.objects.filter(category=None).count()
+        context["comment_form"] = CommentForm
         return context
 
 
@@ -72,7 +75,9 @@ class PostCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def form_valid(self, form):
         current_user = self.request.user
-        if current_user.is_authenticated and (current_user.is_staff or current_user.is_superuser):
+        if current_user.is_authenticated and (
+            current_user.is_staff or current_user.is_superuser
+        ):
             form.instance.author = current_user
             response = super(PostCreate, self).form_valid(form)
 
@@ -98,9 +103,9 @@ class PostCreate(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
 class PostUpdate(LoginRequiredMixin, UpdateView):
     model = Post
-    fields = ['title', 'hook_text', 'content', 'head_image', 'file_upload', 'category']
+    fields = ["title", "hook_text", "content", "head_image", "file_upload", "category"]
 
-    template_name = 'blog/post_update_form.html'
+    template_name = "blog/post_update_form.html"
 
     def get_context_data(self, **kwargs):
         context = super(PostUpdate, self).get_context_data()
@@ -108,7 +113,7 @@ class PostUpdate(LoginRequiredMixin, UpdateView):
             tags_str_list = list()
             for t in self.object.tags.all():
                 tags_str_list.append(t.name)
-            context['tags_str_default'] = '; '.join(tags_str_list)
+            context["tags_str_default"] = "; ".join(tags_str_list)
 
         return context
 
@@ -117,6 +122,7 @@ class PostUpdate(LoginRequiredMixin, UpdateView):
             return super(PostUpdate, self).dispatch(request, *args, **kwargs)
         else:
             raise PermissionDenied
+
     def form_valid(self, form):
         response = super(PostUpdate, self).form_valid(form)
         self.object.tags.clear()
@@ -136,3 +142,20 @@ class PostUpdate(LoginRequiredMixin, UpdateView):
                 self.object.tags.add(tag)
 
             return response
+
+def new_comment(request, pk):
+    if request.user.is_authenticated:
+        post = get_object_or_404(Post, pk=pk)
+
+        if request.method == 'POST':
+            comment_form = CommentForm(request.POST)
+            if comment_form.is_valid():
+                comment = comment_form.save(commit=False)
+                comment.post = post
+                comment.author = request.user
+                comment.save()
+                return redirect(comment.get_absolute_url())
+        else:
+            return redirect(post.get_absolute_url())
+    else:
+        raise PermissionDenied
